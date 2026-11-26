@@ -201,18 +201,9 @@ $("#logout").addEventListener("click", async () => {
   showLogin();
 });
 
-$("#import-file").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+// Sends parsed export data to the Worker and reports the result.
+async function importData(data) {
   $("#import-status").textContent = "Importing...";
-  let data;
-  try {
-    data = JSON.parse(await file.text());
-  } catch {
-    $("#import-status").textContent = "That file isn't valid JSON.";
-    e.target.value = "";
-    return;
-  }
   const res = await api("/api/import", { method: "POST", body: JSON.stringify(data) });
   const body = await res.json().catch(() => ({}));
   if (res.ok) {
@@ -220,12 +211,84 @@ $("#import-file").addEventListener("change", async (e) => {
     if (body.skipped) msg += ` Skipped ${body.skipped} quotes with unknown books.`;
     $("#import-status").textContent = msg;
     loadQuotes();
-  } else if (res.status === 401) {
+    return true;
+  }
+  if (res.status === 401) {
     showLogin();
   } else {
     $("#import-status").textContent = body.error || "Import failed.";
   }
+  return false;
+}
+
+function parseExport(text) {
+  try {
+    return { data: JSON.parse(text) };
+  } catch {
+    return { error: "That isn't valid JSON. Check that the whole export was copied." };
+  }
+}
+
+$("#import-paste").addEventListener("click", async () => {
+  const text = $("#import-text").value.trim();
+  if (!text) {
+    $("#import-status").textContent = "Paste the export JSON first.";
+    return;
+  }
+  const parsed = parseExport(text);
+  if (parsed.error) {
+    $("#import-status").textContent = parsed.error;
+    return;
+  }
+  if (await importData(parsed.data)) $("#import-text").value = "";
+});
+
+$("#import-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const parsed = parseExport(await file.text());
+  if (parsed.error) {
+    $("#import-status").textContent = parsed.error;
+  } else {
+    await importData(parsed.data);
+  }
   e.target.value = "";
+});
+
+async function fetchExportText() {
+  const res = await api("/api/export");
+  if (res.status === 401) {
+    showLogin();
+    return null;
+  }
+  const data = await res.json();
+  return JSON.stringify(data, null, 2);
+}
+
+$("#export-copy").addEventListener("click", async () => {
+  const text = await fetchExportText();
+  if (text === null) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    $("#import-status").textContent = "Export copied to the clipboard.";
+  } catch {
+    $("#import-status").textContent = "Couldn't copy automatically. Use Download file instead.";
+  }
+});
+
+$("#export-download").addEventListener("click", async () => {
+  const text = await fetchExportText();
+  if (text === null) return;
+  const date = new Date().toISOString().slice(0, 10);
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `quote-trax-export-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $("#import-status").textContent = "Export downloaded.";
 });
 
 $("#search").addEventListener("input", () => {

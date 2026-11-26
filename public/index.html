@@ -59,9 +59,20 @@
         <button id="logout" type="button">Sign out</button>
       </header>
       <details id="import-box">
-        <summary>Import export file</summary>
-        <p>Choose your quote export (JSON) from Files. Quotes that already exist are updated by ID.</p>
-        <input id="import-file" type="file" accept=".json,application/json">
+        <summary>Import and export</summary>
+
+        <h3>Import</h3>
+        <p>Paste the JSON from Notes below, or choose a file. Quotes that already exist are updated by ID.</p>
+        <textarea id="import-text" placeholder="Paste export JSON here" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+        <p><button id="import-paste" type="button">Import pasted text</button></p>
+        <p><input id="import-file" type="file" accept=".json,application/json"></p>
+
+        <h3>Export</h3>
+        <p>
+          <button id="export-copy" type="button">Copy to clipboard</button>
+          <button id="export-download" type="button">Download file</button>
+        </p>
+
         <p id="import-status" role="status"></p>
       </details>
       <div id="quotes"></div>
