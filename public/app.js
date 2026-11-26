@@ -631,11 +631,6 @@ $("#step-password").addEventListener("submit", async (e) => {
   if (res.status === 409) return init();
   if (res.ok) {
     e.target.reset();
-    // iOS attaches the one-time code suggestion when the field is focused again, so
-    // refocus it now that the password has been accepted.
-    const code = $("#step-code").querySelector("input");
-    code.blur();
-    code.focus();
   } else {
     $("#step-code").hidden = true;
     $("#step-password").hidden = false;
