@@ -273,9 +273,9 @@ async function loadManage() {
 
 function seriesRow(s) {
   const li = el("li", { className: "row-item" });
-  const name = el("input", { value: s.name, maxLength: 120, "aria-label": "Series name" });
+  const name = el("input", { value: s.name, maxLength: 120 });
   li.append(
-    name,
+    field("Series name", name),
     actionButton("Save", () => saveJson("PUT", `/api/series/${s.id}`, { name: name.value }, loadManage)),
     actionButton("Delete", () =>
       deleteItem(`/api/series/${s.id}`, "Delete this series? Its books stay, but become standalone.", loadManage),
@@ -286,9 +286,9 @@ function seriesRow(s) {
 
 function bookRow(b, series) {
   const li = el("li", { className: "row-item" });
-  const title = el("input", { value: b.title, maxLength: 300, "aria-label": "Title" });
-  const author = el("input", { value: b.author, maxLength: 300, "aria-label": "Author" });
-  const seriesSelect = el("select", { "aria-label": "Series" });
+  const title = el("input", { value: b.title, maxLength: 300 });
+  const author = el("input", { value: b.author, maxLength: 300 });
+  const seriesSelect = el("select");
   seriesSelect.append(el("option", { value: "", textContent: "No series" }));
   for (const s of series) seriesSelect.append(el("option", { value: s.id, textContent: s.name }));
   seriesSelect.value = b.series_id || "";
