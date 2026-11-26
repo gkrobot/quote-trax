@@ -9,8 +9,9 @@ async function api(path, options = {}) {
   });
 }
 
-// Shows one of: "login" (with a step form), "library".
+// Shows one of: "setup", "login", "library".
 function showSection(id) {
+  $("#setup").hidden = id !== "setup";
   $("#login").hidden = id !== "login";
   $("#library").hidden = id !== "library";
 }
@@ -21,6 +22,18 @@ function showStep(id) {
   $("#login-error").textContent = "";
   if (id === "password") $("#step-password").reset();
   if (id === "code") $("#step-code").querySelector("input").focus();
+}
+
+function showLogin() {
+  showSection("login");
+  showStep("password");
+}
+
+function showSetup() {
+  showSection("setup");
+  $("#setup-start").hidden = false;
+  $("#setup-key-step").hidden = true;
+  $("#setup-error").textContent = "";
 }
 
 function renderQuote(q) {
@@ -51,12 +64,11 @@ async function loadQuotes() {
   $("#quotes").replaceChildren(...quotes.map(renderQuote));
 }
 
-function showLogin() {
-  showSection("login");
-  showStep("password");
-}
-
 async function init() {
+  const statusRes = await api("/api/setup/status");
+  const { needsSetup } = await statusRes.json();
+  if (needsSetup) return showSetup();
+
   const res = await api("/api/session");
   const { authenticated } = await res.json();
   if (authenticated) {
@@ -67,6 +79,55 @@ async function init() {
   }
 }
 
+// Setup, step 1
+$("#setup-start").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = new FormData(e.target);
+  const res = await api("/api/setup/start", {
+    method: "POST",
+    body: JSON.stringify({
+      username: form.get("username"),
+      password: form.get("password"),
+      setupToken: form.get("setupToken"),
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    $("#setup-error").textContent = body.error || "Setup failed.";
+    return;
+  }
+  $("#setup-error").textContent = "";
+  $("#setup-key").textContent = body.key;
+  $("#setup-start").hidden = true;
+  $("#setup-key-step").hidden = false;
+  e.target.reset();
+});
+
+// Setup, step 2
+$("#setup-confirm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = new FormData(e.target);
+  const res = await api("/api/setup/confirm", {
+    method: "POST",
+    body: JSON.stringify({ code: form.get("code") }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (res.ok) {
+    e.target.reset();
+    $("#setup-key").textContent = "";
+    showLogin();
+    $("#login-error").textContent = "Setup complete. Sign in to continue.";
+    return;
+  }
+  if (body.error === "setup expired; start again" || res.status === 404) {
+    showSetup();
+    $("#setup-error").textContent = body.error === "not found" ? "Setup is already complete." : "Setup expired. Start again.";
+    return;
+  }
+  $("#setup-error").textContent = "Invalid code. Try again.";
+});
+
+// Login, step 1
 $("#step-password").addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
@@ -74,6 +135,7 @@ $("#step-password").addEventListener("submit", async (e) => {
     method: "POST",
     body: JSON.stringify({ username: form.get("username"), password: form.get("password") }),
   });
+  if (res.status === 409) return init();
   if (res.ok) {
     e.target.reset();
     showStep("code");
@@ -82,6 +144,7 @@ $("#step-password").addEventListener("submit", async (e) => {
   }
 });
 
+// Login, step 2
 $("#step-code").addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);

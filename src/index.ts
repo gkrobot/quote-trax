@@ -1,14 +1,20 @@
-import { hmacHex, timingSafeEqual, verifyPassword } from "./crypto";
-import { base32Decode, verifyTotp } from "./totp";
+import { hashPassword, hmacHex, timingSafeEqual, toHex, verifyPassword } from "./crypto";
+import { base32Decode, base32Encode, totpUri, verifyTotp } from "./totp";
 
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
-  APP_USERNAME: string; // plain Worker variable, set in the dashboard
-  APP_PASSWORD_HASH: string; // secret, from the browser generator
-  TOTP_SECRET: string; // secret, base32
-  SESSION_SECRET: string; // secret, random hex
+  APP_USERNAME: string; // plain Worker variable: the only username allowed to set up
+  SETUP_TOKEN: string; // Worker secret: typed once on the setup page
 }
+
+type Account = {
+  username: string;
+  password_hash: string;
+  totp_secret: string;
+  session_secret: string;
+  last_counter: number;
+};
 
 const COOKIE = "qt_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
@@ -19,6 +25,7 @@ const PENDING = "qt_pending";
 const PENDING_TTL_SECONDS = 300;
 const MAX_CODE_ATTEMPTS = 3;
 
+const SETUP_TTL_SECONDS = 600;
 const enc = new TextEncoder();
 
 export default {
@@ -42,25 +49,128 @@ export default {
 async function handleApi(request: Request, env: Env, url: URL): Promise<Response> {
   const { pathname } = url;
   const isPost = request.method === "POST";
+  const isGet = request.method === "GET";
+
+  if (pathname === "/api/setup/status" && isGet) {
+    return json({ needsSetup: (await getAccount(env)) === null });
+  }
+  if (pathname === "/api/setup/start" && isPost) return setupStart(request, env, url);
+  if (pathname === "/api/setup/confirm" && isPost) return setupConfirm(request, env, url);
 
   if (pathname === "/api/login/password" && isPost) return loginPassword(request, env, url);
   if (pathname === "/api/login/code" && isPost) return loginCode(request, env, url);
   if (pathname === "/api/logout" && isPost) return logout(request, url);
-  if (pathname === "/api/session" && request.method === "GET") {
+  if (pathname === "/api/session" && isGet) {
     return json({ authenticated: await isAuthenticated(request, env) });
   }
 
   if (!(await isAuthenticated(request, env))) return json({ error: "unauthorized" }, 401);
-  if (request.method !== "GET") return json({ error: "method not allowed" }, 405);
+  if (!isGet) return json({ error: "method not allowed" }, 405);
 
   if (pathname === "/api/quotes") return listQuotes(url, env);
   if (pathname === "/api/books") return listBooks(env);
   return json({ error: "not found" }, 404);
 }
 
-// Step 1: username and password.
+// Setup, step 1: check the setup token and username, then generate the
+// authenticator key on the server and show it once. Nothing is saved as the
+// account until the code is confirmed.
+async function setupStart(request: Request, env: Env, url: URL): Promise<Response> {
+  if (!sameOrigin(request, url)) return json({ error: "forbidden" }, 403);
+  if ((await getAccount(env)) !== null) return json({ error: "not found" }, 404);
+
+  const body = (await request.json().catch(() => null)) as
+    | { username?: unknown; password?: unknown; setupToken?: unknown }
+    | null;
+  if (
+    !body ||
+    typeof body.username !== "string" ||
+    typeof body.password !== "string" ||
+    typeof body.setupToken !== "string"
+  ) {
+    return json({ error: "invalid request" }, 400);
+  }
+
+  // Check every condition before answering, so the response doesn't reveal which one failed.
+  const tokenOk = timingSafeEqual(enc.encode(body.setupToken), enc.encode(env.SETUP_TOKEN ?? ""));
+  const usernameOk = usernameMatches(body.username, env.APP_USERNAME);
+  if (!tokenOk || !usernameOk) return json({ error: "setup details not accepted" }, 401);
+  if (body.password.length < 12) {
+    return json({ error: "password must be at least 12 characters" }, 400);
+  }
+
+  const totpSecret = base32Encode(crypto.getRandomValues(new Uint8Array(20)));
+  const sessionSecret = toHex(crypto.getRandomValues(new Uint8Array(32)));
+  const passwordHash = await hashPassword(body.password);
+  const expiresAt = Math.floor(Date.now() / 1000) + SETUP_TTL_SECONDS;
+
+  await env.DB.prepare(
+    `INSERT INTO setup_pending (id, username, password_hash, totp_secret, session_secret, expires_at)
+     VALUES (1, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET username = excluded.username,
+       password_hash = excluded.password_hash, totp_secret = excluded.totp_secret,
+       session_secret = excluded.session_secret, expires_at = excluded.expires_at`,
+  )
+    .bind(env.APP_USERNAME, passwordHash, totpSecret, sessionSecret, expiresAt)
+    .run();
+
+  return json({
+    key: totpSecret,
+    uri: totpUri(totpSecret, env.APP_USERNAME, "quote-trax"),
+  });
+}
+
+// Setup, step 2: the user enters a code from the new authenticator entry.
+// Only then is the account saved, and setup is closed for good.
+async function setupConfirm(request: Request, env: Env, url: URL): Promise<Response> {
+  if (!sameOrigin(request, url)) return json({ error: "forbidden" }, 403);
+  if ((await getAccount(env)) !== null) return json({ error: "not found" }, 404);
+
+  const body = (await request.json().catch(() => null)) as { code?: unknown } | null;
+  if (!body || typeof body.code !== "string") return json({ error: "invalid request" }, 400);
+
+  const pending = await env.DB.prepare(
+    "SELECT username, password_hash, totp_secret, session_secret, expires_at FROM setup_pending WHERE id = 1",
+  ).first<{
+    username: string;
+    password_hash: string;
+    totp_secret: string;
+    session_secret: string;
+    expires_at: number;
+  }>();
+  if (!pending || pending.expires_at * 1000 < Date.now()) {
+    return json({ error: "setup expired; start again" }, 400);
+  }
+
+  const counter = await verifyTotp(base32Decode(pending.totp_secret), body.code, -1);
+  if (counter === null) return json({ error: "invalid code" }, 401);
+
+  // INSERT OR IGNORE: if two confirms race, only the first creates the account.
+  const result = await env.DB.prepare(
+    `INSERT OR IGNORE INTO account (id, username, password_hash, totp_secret, session_secret, last_counter, created_at)
+     VALUES (1, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      pending.username,
+      pending.password_hash,
+      pending.totp_secret,
+      pending.session_secret,
+      counter,
+      new Date().toISOString(),
+    )
+    .run();
+  await env.DB.prepare("DELETE FROM setup_pending WHERE id = 1").run();
+
+  if (result.meta.changes === 0) return json({ error: "not found" }, 404);
+  return json({ ok: true });
+}
+
+// Login, step 1: username and password.
 async function loginPassword(request: Request, env: Env, url: URL): Promise<Response> {
   if (!sameOrigin(request, url)) return json({ error: "forbidden" }, 403);
+
+  const account = await getAccount(env);
+  if (!account) return json({ error: "setup required" }, 409);
 
   const body = (await request.json().catch(() => null)) as
     | { username?: unknown; password?: unknown }
@@ -70,22 +180,25 @@ async function loginPassword(request: Request, env: Env, url: URL): Promise<Resp
   }
 
   // Check both before deciding, so the response doesn't reveal which one was wrong.
-  const usernameOk = usernameMatches(body.username, env.APP_USERNAME);
-  const passwordOk = await verifyPassword(body.password, env.APP_PASSWORD_HASH);
+  const usernameOk = usernameMatches(body.username, account.username);
+  const passwordOk = await verifyPassword(body.password, account.password_hash);
   if (!usernameOk || !passwordOk) return json({ error: "invalid credentials" }, 401);
 
   const exp = Math.floor(Date.now() / 1000) + PENDING_TTL_SECONDS;
-  const token = await pendingToken(env, exp, 0);
+  const token = await pendingToken(account.session_secret, exp, 0);
   return json({ ok: true, next: "code" }, 200, {
     "Set-Cookie": pendingCookie(token, PENDING_TTL_SECONDS),
   });
 }
 
-// Step 2: authenticator code. Requires a valid pending cookie from step 1.
+// Login, step 2: authenticator code. Requires a valid pending cookie from step 1.
 async function loginCode(request: Request, env: Env, url: URL): Promise<Response> {
   if (!sameOrigin(request, url)) return json({ error: "forbidden" }, 403);
 
-  const pending = await readPending(request, env);
+  const account = await getAccount(env);
+  if (!account) return json({ error: "setup required" }, 409);
+
+  const pending = await readPending(request, account.session_secret);
   if (!pending) {
     return json({ error: "sign in with your password first" }, 401, {
       "Set-Cookie": pendingCookie("", 0),
@@ -95,16 +208,13 @@ async function loginCode(request: Request, env: Env, url: URL): Promise<Response
   const body = (await request.json().catch(() => null)) as { code?: unknown } | null;
   if (!body || typeof body.code !== "string") return json({ error: "invalid request" }, 400);
 
-  const row = await env.DB.prepare("SELECT last_counter FROM totp_state WHERE id = 1").first<{
-    last_counter: number;
-  }>();
-  const counter = await verifyTotp(base32Decode(env.TOTP_SECRET), body.code, row?.last_counter ?? -1);
+  const counter = await verifyTotp(base32Decode(account.totp_secret), body.code, account.last_counter);
 
   // Conditional update: if a concurrent request already used this step, changes = 0.
   let accepted = false;
   if (counter !== null) {
     const result = await env.DB.prepare(
-      "UPDATE totp_state SET last_counter = ? WHERE id = 1 AND last_counter < ?",
+      "UPDATE account SET last_counter = ? WHERE id = 1 AND last_counter < ?",
     )
       .bind(counter, counter)
       .run();
@@ -119,12 +229,12 @@ async function loginCode(request: Request, env: Env, url: URL): Promise<Response
       });
     }
     const remaining = pending.exp - Math.floor(Date.now() / 1000);
-    const token = await pendingToken(env, pending.exp, attempts);
+    const token = await pendingToken(account.session_secret, pending.exp, attempts);
     return json({ error: "invalid code" }, 401, { "Set-Cookie": pendingCookie(token, remaining) });
   }
 
   const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
-  const token = `${exp}.${await hmacHex(env.SESSION_SECRET, `session:${exp}`)}`;
+  const token = `${exp}.${await hmacHex(account.session_secret, `session:${exp}`)}`;
   const res = json({ ok: true }, 200, { "Set-Cookie": sessionCookie(token, SESSION_TTL_SECONDS) });
   res.headers.append("Set-Cookie", pendingCookie("", 0));
   return res;
@@ -135,23 +245,35 @@ function logout(request: Request, url: URL): Response {
   return json({ ok: true }, 200, { "Set-Cookie": sessionCookie("", 0) });
 }
 
+async function getAccount(env: Env): Promise<Account | null> {
+  return env.DB.prepare(
+    "SELECT username, password_hash, totp_secret, session_secret, last_counter FROM account WHERE id = 1",
+  ).first<Account>();
+}
+
 async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
+  const account = await getAccount(env);
+  if (!account) return false;
+
   const raw = readCookie(request, COOKIE);
   if (!raw) return false;
   const [expStr, sig] = raw.split(".");
   const exp = Number(expStr);
   if (!sig || !Number.isFinite(exp) || exp * 1000 < Date.now()) return false;
-  const expected = await hmacHex(env.SESSION_SECRET, `session:${expStr}`);
+  const expected = await hmacHex(account.session_secret, `session:${expStr}`);
   return timingSafeEqual(enc.encode(sig), enc.encode(expected));
 }
 
 // Pending token: "<exp>.<attempts>.<hmac>". Signed, so attempts can't be lowered by hand.
-async function pendingToken(env: Env, exp: number, attempts: number): Promise<string> {
-  const sig = await hmacHex(env.SESSION_SECRET, `pending:${exp}:${attempts}`);
+async function pendingToken(secret: string, exp: number, attempts: number): Promise<string> {
+  const sig = await hmacHex(secret, `pending:${exp}:${attempts}`);
   return `${exp}.${attempts}.${sig}`;
 }
 
-async function readPending(request: Request, env: Env): Promise<{ exp: number; attempts: number } | null> {
+async function readPending(
+  request: Request,
+  secret: string,
+): Promise<{ exp: number; attempts: number } | null> {
   const raw = readCookie(request, PENDING);
   if (!raw) return null;
   const [expStr, attStr, sig] = raw.split(".");
@@ -159,7 +281,7 @@ async function readPending(request: Request, env: Env): Promise<{ exp: number; a
   const attempts = Number(attStr);
   if (!sig || !Number.isInteger(exp) || !Number.isInteger(attempts)) return null;
   if (exp * 1000 < Date.now() || attempts >= MAX_CODE_ATTEMPTS) return null;
-  const expected = await hmacHex(env.SESSION_SECRET, `pending:${expStr}:${attStr}`);
+  const expected = await hmacHex(secret, `pending:${expStr}:${attStr}`);
   return timingSafeEqual(enc.encode(sig), enc.encode(expected)) ? { exp, attempts } : null;
 }
 
@@ -200,7 +322,7 @@ async function listBooks(env: Env): Promise<Response> {
 function usernameMatches(input: string, expected: string): boolean {
   return timingSafeEqual(
     enc.encode(input.trim().toLowerCase()),
-    enc.encode(expected.trim().toLowerCase()),
+    enc.encode((expected ?? "").trim().toLowerCase()),
   );
 }
 

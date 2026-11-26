@@ -62,3 +62,12 @@ label input {
   color: #666;
   font-size: 0.9rem;
 }
+
+.key {
+  font-family: ui-monospace, monospace;
+  word-break: break-all;
+  user-select: all;
+  background: #f0f0ea;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
