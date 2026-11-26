@@ -610,6 +610,10 @@ $("#setup-confirm").addEventListener("submit", async (e) => {
 $("#step-password").addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
+  // Move to the code field now, during the tap. iOS Safari only opens the keyboard
+  // for focus set inside a tap, not after the server replies. If the password is
+  // wrong, the password step comes back below.
+  showStep("code");
   const res = await api("/api/login/password", {
     method: "POST",
     body: JSON.stringify({ username: form.get("username"), password: form.get("password") }),
@@ -617,8 +621,9 @@ $("#step-password").addEventListener("submit", async (e) => {
   if (res.status === 409) return init();
   if (res.ok) {
     e.target.reset();
-    showStep("code");
   } else {
+    $("#step-code").hidden = true;
+    $("#step-password").hidden = false;
     $("#login-error").textContent = "Invalid username or password.";
   }
 });
