@@ -95,7 +95,8 @@ function groupQuotes(quotes) {
     if (q.book_id !== bookId) {
       bookId = q.book_id;
       const h = document.createElement("h3");
-      h.textContent = q.book_title;
+      const number = q.series_position == null ? null : q.series_position;
+      h.textContent = number === null ? q.book_title : `${number} · ${q.book_title}`;
       nodes.push(h);
     }
     nodes.push(renderQuote(q));
@@ -297,7 +298,8 @@ function bookRow(b, series) {
     max: 9999,
     step: 0.5,
     value: b.series_position ?? "",
-    "aria-label": "Position in series",
+    placeholder: "No.",
+    "aria-label": "Book number in series",
   });
   li.append(
     title,
