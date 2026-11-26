@@ -1,0 +1,64 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #fafaf7;
+  color: #222;
+}
+
+main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+header h1 {
+  margin-right: auto;
+}
+
+input,
+button {
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+}
+
+label {
+  display: block;
+  margin: 0.75rem 0;
+}
+
+label input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.25rem;
+}
+
+#search {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.quote {
+  border-left: 3px solid #bbb;
+  padding: 0.25rem 1rem;
+  margin: 1.5rem 0;
+}
+
+/* Keeps single line breaks from the source text; collapses extra spaces. */
+.quote p {
+  white-space: pre-line;
+  line-height: 1.55;
+  margin: 0.6rem 0;
+}
+
+.quote footer {
+  color: #666;
+  font-size: 0.9rem;
+}

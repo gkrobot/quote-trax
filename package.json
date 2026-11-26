@@ -1,0 +1,21 @@
+{
+  "name": "quote-trax",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply quote-trax --local",
+    "db:migrate:remote": "wrangler d1 migrations apply quote-trax --remote",
+    "enroll": "tsx scripts/enroll.ts",
+    "import": "tsx scripts/import-quotes.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.0.0",
+    "@types/node": "^22.20.7",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.0.0"
+  }
+}
