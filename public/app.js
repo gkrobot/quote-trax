@@ -298,14 +298,12 @@ function bookRow(b, series) {
     max: 9999,
     step: 0.5,
     value: b.series_position ?? "",
-    placeholder: "No.",
-    "aria-label": "Book number in series",
   });
   li.append(
-    title,
-    author,
-    seriesSelect,
-    position,
+    field("Title", title),
+    field("Author", author),
+    field("Series", seriesSelect),
+    field("Number", position),
     actionButton("Save", () =>
       saveJson(
         "PUT",
