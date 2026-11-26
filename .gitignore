@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env
+# Personal exports and generated SQL. Never commit these.
+/data/
+*.import.sql

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>quote-trax</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main>
+    <section id="login" hidden>
+      <h1>Sign in</h1>
+      <form id="login-form">
+        <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+        <label>Authenticator code <input name="code" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" required></label>
+        <button type="submit">Sign in</button>
+        <p id="login-error" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="library" hidden>
+      <header>
+        <h1>quote-trax</h1>
+        <input id="search" type="search" placeholder="Search quotes">
+        <button id="logout" type="button">Sign out</button>
+      </header>
+      <div id="quotes"></div>
+    </section>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
