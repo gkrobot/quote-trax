@@ -54,8 +54,11 @@ async function parseBook(db: D1Database, body: Body): Promise<Parsed<{ title: st
 
   let position: number | null = null;
   if (body.seriesPosition !== undefined && body.seriesPosition !== null && body.seriesPosition !== "") {
+    // Whole numbers and halves (2, 2.5, 3.5). Anything else is rejected.
     const n = Number(body.seriesPosition);
-    if (!Number.isInteger(n) || n < 0 || n > 9999) return { ok: false, error: "series position must be a whole number" };
+    if (!Number.isFinite(n) || n < 0 || n > 9999 || (n * 2) % 1 !== 0) {
+      return { ok: false, error: "book number must be a whole number or a half, like 2 or 2.5" };
+    }
     position = n;
   }
   return { ok: true, value: { title, author, seriesId, position } };
