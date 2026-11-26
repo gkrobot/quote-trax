@@ -1,4 +1,5 @@
 import { hashPassword, hmacHex, timingSafeEqual, toHex, verifyPassword } from "./crypto";
+import { exportLibrary } from "./export";
 import { importExport } from "./import";
 import { base32Decode, base32Encode, totpUri, verifyTotp } from "./totp";
 
@@ -69,6 +70,7 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
   if (pathname === "/api/import" && isPost) return importRoute(request, env, url);
   if (!isGet) return json({ error: "method not allowed" }, 405);
 
+  if (pathname === "/api/export") return json(await exportLibrary(env.DB));
   if (pathname === "/api/quotes") return listQuotes(url, env);
   if (pathname === "/api/books") return listBooks(env);
   return json({ error: "not found" }, 404);

@@ -11,7 +11,8 @@ const LEADING_HEADING: Record<string, string> = { "mwgxlqc7-2s2crkz": "Fitness" 
 // whitespace or closing punctuation, so hyphens inside words don't match.
 const ATTRIBUTION = /(?:\s+|(?<=[.!?”"’]))[-–—]\s*([^\n]{2,120})$/;
 
-export function cleanQuote(id: string, raw: string): { text: string; attribution: string | null } {
+// Text-only cleanup. Used when the export already carries a separate attribution.
+export function cleanText(id: string, raw: string): string {
   let text = raw.trim();
 
   const heading = LEADING_HEADING[id];
@@ -23,14 +24,21 @@ export function cleanQuote(id: string, raw: string): { text: string; attribution
     text = text.replace(/(?<=[^\n])\n(?=[^\n])/g, " ");
   }
 
-  let attribution: string | null = null;
+  return text;
+}
+
+// Splits a trailing attribution off the end of a quote's text.
+export function splitAttribution(text: string): { text: string; attribution: string | null } {
   const match = text.match(ATTRIBUTION);
   if (match && match.index !== undefined && match.index > 0) {
-    attribution = match[1].trim();
-    text = text.slice(0, match.index).trimEnd();
+    return { text: text.slice(0, match.index).trimEnd(), attribution: match[1].trim() };
   }
+  return { text, attribution: null };
+}
 
-  return { text, attribution };
+// Full cleanup for raw text that may still have an attribution at the end.
+export function cleanQuote(id: string, raw: string): { text: string; attribution: string | null } {
+  return splitAttribution(cleanText(id, raw));
 }
 
 // Stable series ID derived from the name, so re-imports reuse the same row.
