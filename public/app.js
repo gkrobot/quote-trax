@@ -2,16 +2,25 @@
 const $ = (sel) => document.querySelector(sel);
 
 async function api(path, options = {}) {
-  const res = await fetch(path, {
+  return fetch(path, {
     credentials: "same-origin",
     ...options,
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
   });
-  return res;
 }
 
+// Shows one of: "login" (with a step form), "library".
 function showSection(id) {
-  for (const el of ["login", "library"]) $("#" + el).hidden = el !== id;
+  $("#login").hidden = id !== "login";
+  $("#library").hidden = id !== "library";
+}
+
+function showStep(id) {
+  $("#step-password").hidden = id !== "password";
+  $("#step-code").hidden = id !== "code";
+  $("#login-error").textContent = "";
+  if (id === "password") $("#step-password").reset();
+  if (id === "code") $("#step-code").querySelector("input").focus();
 }
 
 function renderQuote(q) {
@@ -37,10 +46,14 @@ async function loadQuotes() {
   const search = $("#search").value.trim();
   if (search) params.set("q", search);
   const res = await api("/api/quotes?" + params.toString());
-  if (res.status === 401) return showSection("login");
+  if (res.status === 401) return showLogin();
   const { quotes } = await res.json();
-  const list = $("#quotes");
-  list.replaceChildren(...quotes.map(renderQuote));
+  $("#quotes").replaceChildren(...quotes.map(renderQuote));
+}
+
+function showLogin() {
+  showSection("login");
+  showStep("password");
 }
 
 async function init() {
@@ -50,30 +63,53 @@ async function init() {
     showSection("library");
     loadQuotes();
   } else {
-    showSection("login");
+    showLogin();
   }
 }
 
-$("#login-form").addEventListener("submit", async (e) => {
+$("#step-password").addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
-  const res = await api("/api/login", {
+  const res = await api("/api/login/password", {
     method: "POST",
-    body: JSON.stringify({ password: form.get("password"), code: form.get("code") }),
+    body: JSON.stringify({ username: form.get("username"), password: form.get("password") }),
   });
   if (res.ok) {
     e.target.reset();
-    $("#login-error").textContent = "";
-    showSection("library");
-    loadQuotes();
+    showStep("code");
   } else {
-    $("#login-error").textContent = "Invalid password or code.";
+    $("#login-error").textContent = "Invalid username or password.";
   }
 });
 
+$("#step-code").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = new FormData(e.target);
+  const res = await api("/api/login/code", {
+    method: "POST",
+    body: JSON.stringify({ code: form.get("code") }),
+  });
+  if (res.ok) {
+    e.target.reset();
+    showSection("library");
+    loadQuotes();
+    return;
+  }
+  const { error } = await res.json().catch(() => ({ error: "" }));
+  // A lockout or missing step-one cookie means starting over.
+  if (res.status === 401 && error !== "invalid code") {
+    showLogin();
+    $("#login-error").textContent = error;
+  } else {
+    $("#login-error").textContent = "Invalid code. Try again.";
+  }
+});
+
+$("#back").addEventListener("click", () => showStep("password"));
+
 $("#logout").addEventListener("click", async () => {
   await api("/api/logout", { method: "POST" });
-  showSection("login");
+  showLogin();
 });
 
 $("#search").addEventListener("input", () => {

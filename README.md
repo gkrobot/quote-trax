@@ -22,7 +22,9 @@ A private book-quotes site on Cloudflare Workers. Data lives in D1. Access requi
    npm run db:migrate:remote
    ```
 
-4. Enroll the account. This generates the password hash, TOTP secret, and session key, and stores them as Worker secrets:
+4. Set the login username. In the Worker, go to Settings → Variables and Secrets and add `APP_USERNAME` as a plain (not secret) variable. Login requires this username, then the password, then the authenticator code. The username is compared case-insensitively.
+
+5. Enroll the account. This generates the password hash, TOTP secret, and session key, and stores them as Worker secrets:
 
    ```sh
    read -s QT_PASSWORD && export QT_PASSWORD
@@ -31,7 +33,7 @@ A private book-quotes site on Cloudflare Workers. Data lives in D1. Access requi
 
    Add the printed key to your authenticator app (Google Authenticator, Authy, 1Password, and so on) before you log in.
 
-5. Load your quotes. Export the Artifact data to `data/export.json` (the `data/` folder is gitignored), then:
+6. Load your quotes. Export the Artifact data to `data/export.json` (the `data/` folder is gitignored), then:
 
    ```sh
    npm run import -- data/export.json > data/import.sql
@@ -40,7 +42,7 @@ A private book-quotes site on Cloudflare Workers. Data lives in D1. Access requi
 
    Read the stderr report first. It lists extracted attributions and quotes with single line breaks.
 
-6. Deploy:
+7. Deploy:
 
    ```sh
    npm run deploy
@@ -48,7 +50,7 @@ A private book-quotes site on Cloudflare Workers. Data lives in D1. Access requi
 
 ## Local development
 
-Create `.dev.vars` (gitignored) with `APP_PASSWORD_HASH`, `TOTP_SECRET`, and `SESSION_SECRET` in `KEY=value` format, then run `npm run db:migrate:local` and `npm run dev`.
+Create `.dev.vars` (gitignored) with `APP_USERNAME`, `APP_PASSWORD_HASH`, `TOTP_SECRET`, and `SESSION_SECRET` in `KEY=value` format, then run `npm run db:migrate:local` and `npm run dev`.
 
 ## Notes
 
