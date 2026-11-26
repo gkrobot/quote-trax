@@ -187,15 +187,38 @@ ul.plain {
   margin-bottom: 1rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  align-items: center;
+  gap: 0.5rem;
+  align-items: flex-end;
 }
 
-.row-item input,
-.row-item select {
-  flex: 1 1 10rem;
+/* Each field has a small caption above it. */
+.row-item label {
+  margin: 0;
+  flex: 1 1 8rem;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.row-item label input,
+.row-item label select {
+  display: block;
+  width: 100%;
+  margin-top: 0.2rem;
   padding: 0.4rem;
   font: inherit;
+  box-sizing: border-box;
+}
+
+.row-item label:first-child {
+  flex: 2 1 12rem;
+}
+
+.row-item label input[type="number"] {
+  width: 5rem;
+}
+
+.row-item > button {
+  margin-bottom: 0;
 }
 
 .hint {
