@@ -4,13 +4,21 @@ import { base32Decode, verifyTotp } from "./totp";
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
-  APP_PASSWORD_HASH: string; // from `npm run enroll`
-  TOTP_SECRET: string; // base32, from `npm run enroll`
-  SESSION_SECRET: string; // random hex, from `npm run enroll`
+  APP_USERNAME: string; // plain Worker variable, set in the dashboard
+  APP_PASSWORD_HASH: string; // secret, from the browser generator
+  TOTP_SECRET: string; // secret, base32
+  SESSION_SECRET: string; // secret, random hex
 }
 
 const COOKIE = "qt_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
+
+// Step 1 (username + password) issues a short-lived "pending" cookie.
+// Step 2 (authenticator code) must present it to get a session.
+const PENDING = "qt_pending";
+const PENDING_TTL_SECONDS = 300;
+const MAX_CODE_ATTEMPTS = 3;
+
 const enc = new TextEncoder();
 
 export default {
@@ -33,9 +41,11 @@ export default {
 
 async function handleApi(request: Request, env: Env, url: URL): Promise<Response> {
   const { pathname } = url;
+  const isPost = request.method === "POST";
 
-  if (pathname === "/api/login" && request.method === "POST") return login(request, env, url);
-  if (pathname === "/api/logout" && request.method === "POST") return logout(request, url);
+  if (pathname === "/api/login/password" && isPost) return loginPassword(request, env, url);
+  if (pathname === "/api/login/code" && isPost) return loginCode(request, env, url);
+  if (pathname === "/api/logout" && isPost) return logout(request, url);
   if (pathname === "/api/session" && request.method === "GET") {
     return json({ authenticated: await isAuthenticated(request, env) });
   }
@@ -48,35 +58,76 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
   return json({ error: "not found" }, 404);
 }
 
-async function login(request: Request, env: Env, url: URL): Promise<Response> {
+// Step 1: username and password.
+async function loginPassword(request: Request, env: Env, url: URL): Promise<Response> {
   if (!sameOrigin(request, url)) return json({ error: "forbidden" }, 403);
 
   const body = (await request.json().catch(() => null)) as
-    | { password?: unknown; code?: unknown }
+    | { username?: unknown; password?: unknown }
     | null;
-  if (!body || typeof body.password !== "string" || typeof body.code !== "string") {
+  if (!body || typeof body.username !== "string" || typeof body.password !== "string") {
     return json({ error: "invalid request" }, 400);
   }
 
+  // Check both before deciding, so the response doesn't reveal which one was wrong.
+  const usernameOk = usernameMatches(body.username, env.APP_USERNAME);
   const passwordOk = await verifyPassword(body.password, env.APP_PASSWORD_HASH);
+  if (!usernameOk || !passwordOk) return json({ error: "invalid credentials" }, 401);
+
+  const exp = Math.floor(Date.now() / 1000) + PENDING_TTL_SECONDS;
+  const token = await pendingToken(env, exp, 0);
+  return json({ ok: true, next: "code" }, 200, {
+    "Set-Cookie": pendingCookie(token, PENDING_TTL_SECONDS),
+  });
+}
+
+// Step 2: authenticator code. Requires a valid pending cookie from step 1.
+async function loginCode(request: Request, env: Env, url: URL): Promise<Response> {
+  if (!sameOrigin(request, url)) return json({ error: "forbidden" }, 403);
+
+  const pending = await readPending(request, env);
+  if (!pending) {
+    return json({ error: "sign in with your password first" }, 401, {
+      "Set-Cookie": pendingCookie("", 0),
+    });
+  }
+
+  const body = (await request.json().catch(() => null)) as { code?: unknown } | null;
+  if (!body || typeof body.code !== "string") return json({ error: "invalid request" }, 400);
+
   const row = await env.DB.prepare("SELECT last_counter FROM totp_state WHERE id = 1").first<{
     last_counter: number;
   }>();
   const counter = await verifyTotp(base32Decode(env.TOTP_SECRET), body.code, row?.last_counter ?? -1);
 
-  if (!passwordOk || counter === null) return json({ error: "invalid credentials" }, 401);
-
   // Conditional update: if a concurrent request already used this step, changes = 0.
-  const result = await env.DB.prepare(
-    "UPDATE totp_state SET last_counter = ? WHERE id = 1 AND last_counter < ?",
-  )
-    .bind(counter, counter)
-    .run();
-  if (result.meta.changes === 0) return json({ error: "invalid credentials" }, 401);
+  let accepted = false;
+  if (counter !== null) {
+    const result = await env.DB.prepare(
+      "UPDATE totp_state SET last_counter = ? WHERE id = 1 AND last_counter < ?",
+    )
+      .bind(counter, counter)
+      .run();
+    accepted = result.meta.changes > 0;
+  }
+
+  if (!accepted) {
+    const attempts = pending.attempts + 1;
+    if (attempts >= MAX_CODE_ATTEMPTS) {
+      return json({ error: "too many attempts; sign in again" }, 401, {
+        "Set-Cookie": pendingCookie("", 0),
+      });
+    }
+    const remaining = pending.exp - Math.floor(Date.now() / 1000);
+    const token = await pendingToken(env, pending.exp, attempts);
+    return json({ error: "invalid code" }, 401, { "Set-Cookie": pendingCookie(token, remaining) });
+  }
 
   const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
   const token = `${exp}.${await hmacHex(env.SESSION_SECRET, `session:${exp}`)}`;
-  return json({ ok: true }, 200, { "Set-Cookie": sessionCookie(token, SESSION_TTL_SECONDS) });
+  const res = json({ ok: true }, 200, { "Set-Cookie": sessionCookie(token, SESSION_TTL_SECONDS) });
+  res.headers.append("Set-Cookie", pendingCookie("", 0));
+  return res;
 }
 
 function logout(request: Request, url: URL): Response {
@@ -92,6 +143,24 @@ async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
   if (!sig || !Number.isFinite(exp) || exp * 1000 < Date.now()) return false;
   const expected = await hmacHex(env.SESSION_SECRET, `session:${expStr}`);
   return timingSafeEqual(enc.encode(sig), enc.encode(expected));
+}
+
+// Pending token: "<exp>.<attempts>.<hmac>". Signed, so attempts can't be lowered by hand.
+async function pendingToken(env: Env, exp: number, attempts: number): Promise<string> {
+  const sig = await hmacHex(env.SESSION_SECRET, `pending:${exp}:${attempts}`);
+  return `${exp}.${attempts}.${sig}`;
+}
+
+async function readPending(request: Request, env: Env): Promise<{ exp: number; attempts: number } | null> {
+  const raw = readCookie(request, PENDING);
+  if (!raw) return null;
+  const [expStr, attStr, sig] = raw.split(".");
+  const exp = Number(expStr);
+  const attempts = Number(attStr);
+  if (!sig || !Number.isInteger(exp) || !Number.isInteger(attempts)) return null;
+  if (exp * 1000 < Date.now() || attempts >= MAX_CODE_ATTEMPTS) return null;
+  const expected = await hmacHex(env.SESSION_SECRET, `pending:${expStr}:${attStr}`);
+  return timingSafeEqual(enc.encode(sig), enc.encode(expected)) ? { exp, attempts } : null;
 }
 
 async function listQuotes(url: URL, env: Env): Promise<Response> {
@@ -128,6 +197,13 @@ async function listBooks(env: Env): Promise<Response> {
   return json({ books: results });
 }
 
+function usernameMatches(input: string, expected: string): boolean {
+  return timingSafeEqual(
+    enc.encode(input.trim().toLowerCase()),
+    enc.encode(expected.trim().toLowerCase()),
+  );
+}
+
 // Blocks cross-site POSTs. SameSite=Strict on the cookie is the main defense.
 function sameOrigin(request: Request, url: URL): boolean {
   const origin = request.headers.get("Origin");
@@ -145,6 +221,10 @@ function readCookie(request: Request, name: string): string | null {
 
 function sessionCookie(value: string, maxAge: number): string {
   return `${COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
+}
+
+function pendingCookie(value: string, maxAge: number): string {
+  return `${PENDING}=${value}; Path=/api/login; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
 }
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
