@@ -135,7 +135,7 @@ function fillSelect(select, options) {
   select.replaceChildren(
     ...options.map(([value, label]) => el("option", { value, textContent: label })),
   );
-  select.value = options.some(([value]) => value === previous) ? previous : "";
+  select.value = options.some(([value]) => value === previous) ? previous : (options[0]?.[0] ?? "");
 }
 
 function renderLibrary() {
@@ -355,6 +355,20 @@ async function loadStats() {
   );
 }
 
+// Add tab: the quote's book list, narrowed by the series filter above it.
+let addBooks = [];
+
+function renderQuoteBooks() {
+  const series = $("#quote-series-filter").value;
+  const shown = addBooks.filter((b) => matchesSeries(b, series));
+  fillSelect(
+    $("#quote-book"),
+    shown.map((b) => [b.id, b.series_name ? `${b.title} (${b.series_name})` : b.title]),
+  );
+}
+
+$("#quote-series-filter").addEventListener("change", renderQuoteBooks);
+
 // Add tab: fills the book and series dropdowns from the server.
 async function loadSelects() {
   const [booksRes, seriesRes] = await Promise.all([api("/api/books"), api("/api/series")]);
@@ -362,17 +376,13 @@ async function loadSelects() {
   const { books } = await booksRes.json();
   const { series } = await seriesRes.json();
 
-  const quoteBook = $("#quote-book");
-  const previousBook = quoteBook.value;
-  quoteBook.replaceChildren(
-    ...books.map((b) => {
-      const opt = document.createElement("option");
-      opt.value = b.id;
-      opt.textContent = b.series_name ? `${b.title} (${b.series_name})` : b.title;
-      return opt;
-    }),
-  );
-  if (previousBook) quoteBook.value = previousBook;
+  addBooks = books;
+  fillSelect($("#quote-series-filter"), [
+    ["", "All series"],
+    ["none", "Standalone"],
+    ...series.map((s) => [s.id, s.name]),
+  ]);
+  renderQuoteBooks();
 
   const bookSeries = $("#book-series");
   const previousSeries = bookSeries.value;
