@@ -55,27 +55,79 @@
     <section id="library" hidden>
       <header>
         <h1>quote-trax</h1>
-        <input id="search" type="search" placeholder="Search quotes">
+        <nav>
+          <button type="button" data-tab="library" class="tab-button">Library</button>
+          <button type="button" data-tab="stats" class="tab-button">Stats</button>
+          <button type="button" data-tab="add" class="tab-button">Add</button>
+          <button type="button" data-tab="data" class="tab-button">Import / Export</button>
+        </nav>
         <button id="logout" type="button">Sign out</button>
       </header>
-      <details id="import-box">
-        <summary>Import and export</summary>
 
-        <h3>Import</h3>
+      <section id="tab-library" class="tab">
+        <input id="search" type="search" placeholder="Search quotes">
+        <div id="quotes"></div>
+      </section>
+
+      <section id="tab-stats" class="tab" hidden>
+        <h2>Totals</h2>
+        <dl id="stats-totals" class="stats"></dl>
+        <h2>Quotes by series</h2>
+        <ul id="stats-series" class="plain"></ul>
+        <h2>Quotes by book</h2>
+        <ul id="stats-books" class="plain"></ul>
+      </section>
+
+      <section id="tab-add" class="tab" hidden>
+        <h2>Add a quote</h2>
+        <form id="form-quote">
+          <label>Book
+            <select id="quote-book" required></select>
+          </label>
+          <label>Quote
+            <textarea id="quote-text" rows="6" required placeholder="Paste or type the quote. Line breaks are kept."></textarea>
+          </label>
+          <label>Page (optional) <input id="quote-page" maxlength="20"></label>
+          <label>Attribution (optional) <input id="quote-attribution" maxlength="300" placeholder="Character or author"></label>
+          <button type="submit">Save quote</button>
+          <p class="status" id="quote-status" role="status"></p>
+        </form>
+
+        <h2>Add a book</h2>
+        <form id="form-book">
+          <label>Title <input id="book-title" maxlength="300" required></label>
+          <label>Author <input id="book-author" maxlength="300" required></label>
+          <label>Series
+            <select id="book-series"></select>
+          </label>
+          <label>Position in series (optional) <input id="book-position" type="number" min="0" max="9999" inputmode="numeric"></label>
+          <button type="submit">Save book</button>
+          <p class="status" id="book-status" role="status"></p>
+        </form>
+
+        <h2>Add a series</h2>
+        <form id="form-series">
+          <label>Name <input id="series-name" maxlength="120" required></label>
+          <button type="submit">Save series</button>
+          <p class="status" id="series-status" role="status"></p>
+        </form>
+      </section>
+
+      <section id="tab-data" class="tab" hidden>
+        <h2>Import</h2>
         <p>Paste the JSON from Notes below, or choose a file. Quotes that already exist are updated by ID.</p>
         <textarea id="import-text" placeholder="Paste export JSON here" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
         <p><button id="import-paste" type="button">Import pasted text</button></p>
         <p><input id="import-file" type="file" accept=".json,application/json"></p>
 
-        <h3>Export</h3>
+        <h2>Export</h2>
         <p>
           <button id="export-copy" type="button">Copy to clipboard</button>
           <button id="export-download" type="button">Download file</button>
         </p>
 
-        <p id="import-status" role="status"></p>
-      </details>
-      <div id="quotes"></div>
+        <p class="status" id="import-status" role="status"></p>
+      </section>
     </section>
   </main>
   <script src="/app.js" defer></script>
