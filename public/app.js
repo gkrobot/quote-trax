@@ -295,6 +295,7 @@ function bookRow(b, series) {
     type: "number",
     min: 0,
     max: 9999,
+    step: 0.5,
     value: b.series_position ?? "",
     "aria-label": "Position in series",
   });

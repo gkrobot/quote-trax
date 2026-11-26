@@ -326,7 +326,7 @@ async function listQuotes(url: URL, env: Env): Promise<Response> {
       WHERE (?1 IS NULL OR b.id = ?1)
         AND (?2 IS NULL OR s.id = ?2)
         AND (?3 IS NULL OR q.text LIKE ?3)
-      ORDER BY s.name, b.series_position, b.title, q.created_at`,
+      ORDER BY s.name, b.series_position DESC, b.title, q.created_at`,
   )
     .bind(book, series, q ? `%${q}%` : null)
     .all();
@@ -340,7 +340,7 @@ async function listBooks(env: Env): Promise<Response> {
             s.id AS series_id, s.name AS series_name
        FROM books b
        LEFT JOIN series s ON s.id = b.series_id
-      ORDER BY s.name, b.series_position, b.title`,
+      ORDER BY s.name, b.series_position DESC, b.title`,
   ).all();
   return json({ books: results });
 }
