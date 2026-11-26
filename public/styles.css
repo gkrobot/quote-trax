@@ -57,6 +57,114 @@ label input {
   margin: 1rem 0 0.25rem;
 }
 
+header nav {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.tab-button[aria-current="page"] {
+  font-weight: 700;
+  border-bottom: 2px solid #333;
+}
+
+select,
+textarea {
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+textarea {
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+label select {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+form {
+  margin-bottom: 1.5rem;
+}
+
+form label {
+  display: block;
+  margin: 0.75rem 0;
+}
+
+.status {
+  color: #555;
+  min-height: 1.2em;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.stats dt {
+  color: #555;
+}
+
+.stats dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+ul.plain {
+  padding-left: 1.2rem;
+}
+
+.actions button,
+.row-item button {
+  margin: 0.25rem 0.5rem 0.25rem 0;
+}
+
+.row-item {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.row-item input,
+.row-item select {
+  flex: 1 1 10rem;
+  padding: 0.4rem;
+  font: inherit;
+}
+
+.hint {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.inline-edit label {
+  display: block;
+  margin: 0.5rem 0;
+}
+
+.inline-edit input,
+.inline-edit select,
+.inline-edit textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.25rem;
+  padding: 0.4rem;
+  font: inherit;
+}
+
+ul.plain li {
+  margin: 0.25rem 0;
+}
+
 .quote {
   border-left: 3px solid #bbb;
   padding: 0.25rem 1rem;
