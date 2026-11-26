@@ -58,6 +58,12 @@
         <input id="search" type="search" placeholder="Search quotes">
         <button id="logout" type="button">Sign out</button>
       </header>
+      <details id="import-box">
+        <summary>Import export file</summary>
+        <p>Choose your quote export (JSON) from Files. Quotes that already exist are updated by ID.</p>
+        <input id="import-file" type="file" accept=".json,application/json">
+        <p id="import-status" role="status"></p>
+      </details>
       <div id="quotes"></div>
     </section>
   </main>

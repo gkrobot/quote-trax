@@ -8,7 +8,7 @@ A private book-quotes site on Cloudflare Workers. Data lives in D1. Access requi
 
 2. **Create the tables.** Open the database's Console and run `migrations/0001_init.sql`, `migrations/0002_totp_state.sql`, and `migrations/0003_account.sql`, in that order.
 
-3. **Load your quotes.** Run the import SQL in the Console (generated from your export with `npm run import`, or prepared by hand).
+3. **Load your quotes.** Sign in, open the **Import export file** section, and choose your quote export (JSON) from Files. Re-importing updates existing quotes by ID. Cleanup rules (removed heading, joined wrapped lines) are applied during import, in `src/quote-clean.ts`.
 
 4. **Set the Worker variables.** In the Worker, go to Settings → Variables and Secrets:
    - `APP_USERNAME`: plain text, the only username allowed to set up the account.

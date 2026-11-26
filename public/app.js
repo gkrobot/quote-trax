@@ -54,6 +54,32 @@ function renderQuote(q) {
   return article;
 }
 
+// Quotes arrive ordered by series, book position, then title. Insert a heading
+// whenever the series or book changes.
+function groupQuotes(quotes) {
+  const nodes = [];
+  let seriesName = null;
+  let bookId = null;
+  for (const q of quotes) {
+    const name = q.series_name || "Standalone";
+    if (name !== seriesName) {
+      seriesName = name;
+      bookId = null;
+      const h = document.createElement("h2");
+      h.textContent = name;
+      nodes.push(h);
+    }
+    if (q.book_id !== bookId) {
+      bookId = q.book_id;
+      const h = document.createElement("h3");
+      h.textContent = q.book_title;
+      nodes.push(h);
+    }
+    nodes.push(renderQuote(q));
+  }
+  return nodes;
+}
+
 async function loadQuotes() {
   const params = new URLSearchParams();
   const search = $("#search").value.trim();
@@ -61,7 +87,7 @@ async function loadQuotes() {
   const res = await api("/api/quotes?" + params.toString());
   if (res.status === 401) return showLogin();
   const { quotes } = await res.json();
-  $("#quotes").replaceChildren(...quotes.map(renderQuote));
+  $("#quotes").replaceChildren(...groupQuotes(quotes));
 }
 
 async function init() {
@@ -173,6 +199,33 @@ $("#back").addEventListener("click", () => showStep("password"));
 $("#logout").addEventListener("click", async () => {
   await api("/api/logout", { method: "POST" });
   showLogin();
+});
+
+$("#import-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  $("#import-status").textContent = "Importing...";
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    $("#import-status").textContent = "That file isn't valid JSON.";
+    e.target.value = "";
+    return;
+  }
+  const res = await api("/api/import", { method: "POST", body: JSON.stringify(data) });
+  const body = await res.json().catch(() => ({}));
+  if (res.ok) {
+    let msg = `Imported ${body.quotes} quotes, ${body.books} books, ${body.series} series.`;
+    if (body.skipped) msg += ` Skipped ${body.skipped} quotes with unknown books.`;
+    $("#import-status").textContent = msg;
+    loadQuotes();
+  } else if (res.status === 401) {
+    showLogin();
+  } else {
+    $("#import-status").textContent = body.error || "Import failed.";
+  }
+  e.target.value = "";
 });
 
 $("#search").addEventListener("input", () => {
