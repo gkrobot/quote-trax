@@ -103,6 +103,21 @@ function groupQuotes(quotes) {
   return nodes;
 }
 
+// Sort orders. "series" keeps the server's order and shows series and book headings.
+const SORTS = {
+  series: null,
+  newest: (a, b) => (b.created_at || "").localeCompare(a.created_at || ""),
+  oldest: (a, b) => (a.created_at || "").localeCompare(b.created_at || ""),
+  author: (a, b) =>
+    (a.author || "").localeCompare(b.author || "") ||
+    a.book_title.localeCompare(b.book_title) ||
+    (a.created_at || "").localeCompare(b.created_at || ""),
+  book: (a, b) => a.book_title.localeCompare(b.book_title) || (a.created_at || "").localeCompare(b.created_at || ""),
+};
+
+// The search runs on the server. Sorting and filtering run here, on the loaded quotes.
+let libraryQuotes = [];
+
 async function loadQuotes() {
   const params = new URLSearchParams();
   const search = $("#search").value.trim();
@@ -110,8 +125,70 @@ async function loadQuotes() {
   const res = await api("/api/quotes?" + params.toString());
   if (res.status === 401) return showLogin();
   const { quotes } = await res.json();
-  $("#quotes").replaceChildren(...groupQuotes(quotes));
+  libraryQuotes = quotes;
+  renderLibrary();
 }
+
+// Fills a <select> with [value, label] pairs, keeping the current choice when it still exists.
+function fillSelect(select, options) {
+  const previous = select.value;
+  select.replaceChildren(
+    ...options.map(([value, label]) => el("option", { value, textContent: label })),
+  );
+  select.value = options.some(([value]) => value === previous) ? previous : "";
+}
+
+function renderLibrary() {
+  const seriesMap = new Map();
+  for (const q of libraryQuotes) {
+    const key = q.series_id || "none";
+    seriesMap.set(key, q.series_name || "Standalone");
+  }
+  const seriesOptions = [...seriesMap].sort((a, b) => a[1].localeCompare(b[1]));
+  fillSelect($("#filter-series"), [["", "All series"], ...seriesOptions]);
+  const series = $("#filter-series").value;
+
+  const inSeries = libraryQuotes.filter((q) => matchesSeries(q, series));
+  const bookMap = new Map();
+  for (const q of inSeries) bookMap.set(q.book_id, q.book_title);
+  const bookOptions = [...bookMap].sort((a, b) => a[1].localeCompare(b[1]));
+  fillSelect($("#filter-book"), [["", "All books"], ...bookOptions]);
+  const book = $("#filter-book").value;
+
+  const sort = $("#sort").value;
+  const filtered = inSeries.filter((q) => !book || q.book_id === book);
+  const compare = SORTS[sort];
+  const ordered = compare ? [...filtered].sort(compare) : filtered;
+
+  const count = ordered.length;
+  $("#quote-count").textContent =
+    libraryQuotes.length === 0 ? "" : `${count} of ${libraryQuotes.length} quote${libraryQuotes.length === 1 ? "" : "s"}`;
+  if (count === 0) {
+    const empty = el("p", { className: "hint", textContent: libraryQuotes.length ? "No quotes match these filters." : "No quotes yet." });
+    $("#quotes").replaceChildren(empty);
+    return;
+  }
+  $("#quotes").replaceChildren(...(compare ? ordered.map(renderQuote) : groupQuotes(ordered)));
+}
+
+function matchesSeries(q, series) {
+  if (!series) return true;
+  if (series === "none") return !q.series_id;
+  return q.series_id === series;
+}
+
+$("#sort").addEventListener("change", renderLibrary);
+$("#filter-series").addEventListener("change", () => {
+  $("#filter-book").value = "";
+  renderLibrary();
+});
+$("#filter-book").addEventListener("change", renderLibrary);
+$("#filter-clear").addEventListener("click", () => {
+  $("#sort").value = "series";
+  $("#filter-series").value = "";
+  $("#filter-book").value = "";
+  renderLibrary();
+});
 
 // Small DOM helpers. Values are set as properties, never as HTML.
 function el(tag, props = {}) {

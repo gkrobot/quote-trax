@@ -223,6 +223,44 @@ ul.plain li {
   margin: 0.25rem 0;
 }
 
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: flex-end;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.toolbar label {
+  margin: 0;
+  flex: 1 1 9rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.toolbar select {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.45rem;
+  font: inherit;
+  background: #fff;
+  border: 1px solid #d8d5cb;
+  border-radius: 6px;
+}
+
+#filter-clear {
+  background: #fff;
+  border: 1px solid #d8d5cb;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+
+#quote-count {
+  margin: 0.25rem 0 0;
+}
+
 .quote {
   border-left: 3px solid #bbb;
   padding: 0.25rem 1rem;
