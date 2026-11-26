@@ -1,4 +1,5 @@
 import { hashPassword, hmacHex, timingSafeEqual, toHex, verifyPassword } from "./crypto";
+import { importExport } from "./import";
 import { base32Decode, base32Encode, totpUri, verifyTotp } from "./totp";
 
 export interface Env {
@@ -65,6 +66,7 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
   }
 
   if (!(await isAuthenticated(request, env))) return json({ error: "unauthorized" }, 401);
+  if (pathname === "/api/import" && isPost) return importRoute(request, env, url);
   if (!isGet) return json({ error: "method not allowed" }, 405);
 
   if (pathname === "/api/quotes") return listQuotes(url, env);
@@ -317,6 +319,18 @@ async function listBooks(env: Env): Promise<Response> {
       ORDER BY s.name, b.series_position, b.title`,
   ).all();
   return json({ books: results });
+}
+
+// Signed-in users can load an export file. Re-importing updates rows by ID.
+async function importRoute(request: Request, env: Env, url: URL): Promise<Response> {
+  if (!sameOrigin(request, url)) return json({ error: "forbidden" }, 403);
+
+  const data = await request.json().catch(() => null);
+  if (data === null) return json({ error: "file is not valid JSON" }, 400);
+
+  const result = await importExport(env.DB, data);
+  if (typeof result === "string") return json({ error: result }, 400);
+  return json({ ok: true, ...result });
 }
 
 function usernameMatches(input: string, expected: string): boolean {

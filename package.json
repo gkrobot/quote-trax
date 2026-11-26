@@ -8,8 +8,7 @@
     "typecheck": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply quote-trax --local",
     "db:migrate:remote": "wrangler d1 migrations apply quote-trax --remote",
-    "enroll": "tsx scripts/enroll.ts",
-    "import": "tsx scripts/import-quotes.ts"
+    "enroll": "tsx scripts/enroll.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.0.0",
