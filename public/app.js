@@ -45,6 +45,7 @@ function showTab(name) {
   if (name === "library") loadQuotes();
   if (name === "stats") loadStats();
   if (name === "add") loadSelects();
+  if (name === "manage") loadManage();
 }
 
 document.querySelectorAll(".tab-button").forEach((btn) => {
@@ -66,6 +67,13 @@ function renderQuote(q) {
   const parts = [q.attribution, q.book_title, q.series_name, q.page ? `p. ${q.page}` : null];
   cite.textContent = parts.filter(Boolean).join(" · ");
   article.appendChild(cite);
+
+  const actions = el("p", { className: "actions" });
+  actions.append(
+    actionButton("Edit", () => openQuoteEditor(article, q)),
+    actionButton("Delete", () => deleteItem(`/api/quotes/${q.id}`, "Delete this quote?", loadQuotes)),
+  );
+  article.appendChild(actions);
   return article;
 }
 
@@ -103,6 +111,137 @@ async function loadQuotes() {
   if (res.status === 401) return showLogin();
   const { quotes } = await res.json();
   $("#quotes").replaceChildren(...groupQuotes(quotes));
+}
+
+// Small DOM helpers. Values are set as properties, never as HTML.
+function el(tag, props = {}) {
+  return Object.assign(document.createElement(tag), props);
+}
+
+function actionButton(label, onClick) {
+  const b = el("button", { type: "button", textContent: label });
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function field(labelText, control) {
+  const l = el("label");
+  l.append(labelText, control);
+  return l;
+}
+
+// Sends a change and reports the outcome. Errors from the server are shown in an alert.
+async function saveJson(method, path, payload, onDone) {
+  const res = await api(path, { method, body: JSON.stringify(payload) });
+  if (res.status === 401) return showLogin();
+  if (res.ok) return onDone();
+  const body = await res.json().catch(() => ({}));
+  alert(body.error || "Couldn't save. Try again.");
+}
+
+async function deleteItem(path, message, onDone) {
+  if (!confirm(message)) return;
+  const res = await api(path, { method: "DELETE" });
+  if (res.status === 401) return showLogin();
+  if (res.ok) return onDone();
+  const body = await res.json().catch(() => ({}));
+  alert(body.error || "Couldn't delete. Try again.");
+}
+
+// Replaces a quote's card with an edit form. Saving reloads the library.
+async function openQuoteEditor(article, q) {
+  const res = await api("/api/books");
+  if (res.status === 401) return showLogin();
+  const { books } = await res.json();
+
+  const bookSelect = el("select");
+  for (const b of books) {
+    bookSelect.append(el("option", { value: b.id, textContent: b.series_name ? `${b.title} (${b.series_name})` : b.title }));
+  }
+  bookSelect.value = q.book_id;
+  const text = el("textarea", { value: q.text, rows: 6 });
+  const page = el("input", { value: q.page || "", maxLength: 20 });
+  const attribution = el("input", { value: q.attribution || "", maxLength: 300 });
+  const form = el("form", { className: "inline-edit" });
+  form.append(
+    field("Book", bookSelect),
+    field("Quote", text),
+    field("Page", page),
+    field("Attribution", attribution),
+  );
+  const save = el("button", { type: "submit", textContent: "Save" });
+  form.append(save, actionButton("Cancel", loadQuotes));
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    saveJson(
+      "PUT",
+      `/api/quotes/${q.id}`,
+      { bookId: bookSelect.value, text: text.value, page: page.value, attribution: attribution.value },
+      loadQuotes,
+    );
+  });
+  article.replaceChildren(form);
+}
+
+// Manage tab: rename or delete series, and edit or delete books.
+async function loadManage() {
+  const [seriesRes, booksRes] = await Promise.all([api("/api/series"), api("/api/books")]);
+  if (seriesRes.status === 401 || booksRes.status === 401) return showLogin();
+  const { series } = await seriesRes.json();
+  const { books } = await booksRes.json();
+  $("#manage-series").replaceChildren(...series.map((s) => seriesRow(s)));
+  $("#manage-books").replaceChildren(...books.map((b) => bookRow(b, series)));
+}
+
+function seriesRow(s) {
+  const li = el("li", { className: "row-item" });
+  const name = el("input", { value: s.name, maxLength: 120, "aria-label": "Series name" });
+  li.append(
+    name,
+    actionButton("Save", () => saveJson("PUT", `/api/series/${s.id}`, { name: name.value }, loadManage)),
+    actionButton("Delete", () =>
+      deleteItem(`/api/series/${s.id}`, "Delete this series? Its books stay, but become standalone.", loadManage),
+    ),
+  );
+  return li;
+}
+
+function bookRow(b, series) {
+  const li = el("li", { className: "row-item" });
+  const title = el("input", { value: b.title, maxLength: 300, "aria-label": "Title" });
+  const author = el("input", { value: b.author, maxLength: 300, "aria-label": "Author" });
+  const seriesSelect = el("select", { "aria-label": "Series" });
+  seriesSelect.append(el("option", { value: "", textContent: "No series" }));
+  for (const s of series) seriesSelect.append(el("option", { value: s.id, textContent: s.name }));
+  seriesSelect.value = b.series_id || "";
+  const position = el("input", {
+    type: "number",
+    min: 0,
+    max: 9999,
+    value: b.series_position ?? "",
+    "aria-label": "Position in series",
+  });
+  li.append(
+    title,
+    author,
+    seriesSelect,
+    position,
+    actionButton("Save", () =>
+      saveJson(
+        "PUT",
+        `/api/books/${b.id}`,
+        {
+          title: title.value,
+          author: author.value,
+          seriesId: seriesSelect.value || null,
+          seriesPosition: position.value || null,
+        },
+        loadManage,
+      ),
+    ),
+    actionButton("Delete", () => deleteItem(`/api/books/${b.id}`, "Delete this book?", loadManage)),
+  );
+  return li;
 }
 
 // Stats tab

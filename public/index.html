@@ -59,6 +59,7 @@
           <button type="button" data-tab="library" class="tab-button">Library</button>
           <button type="button" data-tab="stats" class="tab-button">Stats</button>
           <button type="button" data-tab="add" class="tab-button">Add</button>
+          <button type="button" data-tab="manage" class="tab-button">Manage</button>
           <button type="button" data-tab="data" class="tab-button">Import / Export</button>
         </nav>
         <button id="logout" type="button">Sign out</button>
@@ -111,6 +112,16 @@
           <button type="submit">Save series</button>
           <p class="status" id="series-status" role="status"></p>
         </form>
+      </section>
+
+      <section id="tab-manage" class="tab" hidden>
+        <h2>Series</h2>
+        <p class="hint">Rename a series or delete it. Deleting keeps its books, which become standalone.</p>
+        <ul id="manage-series" class="plain"></ul>
+
+        <h2>Books</h2>
+        <p class="hint">A book can only be deleted once its quotes are gone.</p>
+        <ul id="manage-books" class="plain"></ul>
       </section>
 
       <section id="tab-data" class="tab" hidden>

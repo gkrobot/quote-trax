@@ -120,6 +120,47 @@ ul.plain {
   padding-left: 1.2rem;
 }
 
+.actions button,
+.row-item button {
+  margin: 0.25rem 0.5rem 0.25rem 0;
+}
+
+.row-item {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.row-item input,
+.row-item select {
+  flex: 1 1 10rem;
+  padding: 0.4rem;
+  font: inherit;
+}
+
+.hint {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.inline-edit label {
+  display: block;
+  margin: 0.5rem 0;
+}
+
+.inline-edit input,
+.inline-edit select,
+.inline-edit textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.25rem;
+  padding: 0.4rem;
+  font: inherit;
+}
+
 ul.plain li {
   margin: 0.25rem 0;
 }

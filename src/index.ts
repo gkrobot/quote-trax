@@ -1,6 +1,18 @@
 import { hashPassword, hmacHex, timingSafeEqual, toHex, verifyPassword } from "./crypto";
 import { exportLibrary } from "./export";
-import { createBook, createQuote, createSeries, getStats, listSeries } from "./manage";
+import {
+  createBook,
+  createQuote,
+  createSeries,
+  deleteBook,
+  deleteQuote,
+  deleteSeries,
+  getStats,
+  listSeries,
+  updateBook,
+  updateQuote,
+  updateSeries,
+} from "./manage";
 import { importExport } from "./import";
 import { base32Decode, base32Encode, totpUri, verifyTotp } from "./totp";
 
@@ -71,6 +83,10 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
   if (pathname === "/api/import" && isPost) return importRoute(request, env, url);
   if (isPost && (pathname === "/api/series" || pathname === "/api/books" || pathname === "/api/quotes")) {
     return createRoute(request, env, url, pathname);
+  }
+  const item = pathname.match(/^\/api\/(quotes|books|series)\/([^/]+)$/);
+  if (item && (request.method === "PUT" || request.method === "DELETE")) {
+    return itemRoute(request, env, url, item[1], decodeURIComponent(item[2]));
   }
   if (!isGet) return json({ error: "method not allowed" }, 405);
 
@@ -339,6 +355,24 @@ async function createRoute(request: Request, env: Env, url: URL, pathname: strin
   if (pathname === "/api/series") return jsonResult(await createSeries(env.DB, fields));
   if (pathname === "/api/books") return jsonResult(await createBook(env.DB, fields));
   return jsonResult(await createQuote(env.DB, fields));
+}
+
+// Edits (PUT) and deletes (DELETE) a single quote, book, or series by ID.
+async function itemRoute(request: Request, env: Env, url: URL, kind: string, id: string): Promise<Response> {
+  if (!sameOrigin(request, url)) return json({ error: "forbidden" }, 403);
+
+  if (request.method === "DELETE") {
+    if (kind === "quotes") return jsonResult(await deleteQuote(env.DB, id));
+    if (kind === "books") return jsonResult(await deleteBook(env.DB, id));
+    return jsonResult(await deleteSeries(env.DB, id));
+  }
+
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") return json({ error: "invalid request" }, 400);
+  const fields = body as Record<string, unknown>;
+  if (kind === "quotes") return jsonResult(await updateQuote(env.DB, id, fields));
+  if (kind === "books") return jsonResult(await updateBook(env.DB, id, fields));
+  return jsonResult(await updateSeries(env.DB, id, fields));
 }
 
 function jsonResult(r: { status: number; body: unknown }): Response {
