@@ -69,6 +69,25 @@
 
       <section id="tab-library" class="tab">
         <input id="search" type="search" placeholder="Search quotes">
+        <div class="toolbar">
+          <label>Sort
+            <select id="sort">
+              <option value="series">Series and book order</option>
+              <option value="newest">Newest added</option>
+              <option value="oldest">Oldest added</option>
+              <option value="author">Author</option>
+              <option value="book">Book title</option>
+            </select>
+          </label>
+          <label>Series
+            <select id="filter-series"></select>
+          </label>
+          <label>Book
+            <select id="filter-book"></select>
+          </label>
+          <button id="filter-clear" type="button">Clear</button>
+        </div>
+        <p class="hint" id="quote-count" role="status"></p>
         <div id="quotes"></div>
       </section>
 
