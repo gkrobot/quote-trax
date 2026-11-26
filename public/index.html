@@ -3,11 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
   <title>quote-trax</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <main>
+    <section id="setup" hidden>
+      <h1>Set up quote-trax</h1>
+      <p>This only works once. Enter the username, a password of at least 12 characters, and the setup token you saved in the Worker's secrets.</p>
+
+      <form id="setup-start">
+        <label>Username <input name="username" autocomplete="username" required></label>
+        <label>Password <input name="password" type="password" autocomplete="new-password" minlength="12" required></label>
+        <label>Setup token <input name="setupToken" type="password" autocomplete="off" required></label>
+        <button type="submit">Continue</button>
+      </form>
+
+      <div id="setup-key-step" hidden>
+        <p>Add this account to Passwords or your authenticator app using <b>Enter setup key</b> with time-based codes, 6 digits, 30 seconds. Name it <code>quote-trax</code>.</p>
+        <p class="key" id="setup-key"></p>
+        <p>Then enter the 6-digit code it shows.</p>
+        <form id="setup-confirm">
+          <label>Authenticator code <input name="code" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" required></label>
+          <button type="submit">Confirm</button>
+        </form>
+      </div>
+
+      <p id="setup-error" role="alert"></p>
+    </section>
+
     <section id="login" hidden>
       <h1>Sign in</h1>
 
