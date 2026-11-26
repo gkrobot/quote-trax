@@ -13,13 +13,39 @@ main {
 
 header {
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
-  align-items: center;
-  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e4e2da;
 }
 
-header h1 {
-  margin-right: auto;
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+#logout {
+  background: transparent;
+  border: 1px solid #c9c6bc;
+  border-radius: 999px;
+  color: #444;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+#logout:hover {
+  background: #f0efe8;
 }
 
 input,
@@ -59,13 +85,45 @@ label input {
 
 header nav {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
 }
 
+.tab-button {
+  background: #fff;
+  border: 1px solid #d8d5cb;
+  border-radius: 999px;
+  color: #444;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.tab-button:hover {
+  border-color: #8f8b7e;
+  color: #222;
+}
+
 .tab-button[aria-current="page"] {
-  font-weight: 700;
-  border-bottom: 2px solid #333;
+  background: #2f4a3f;
+  border-color: #2f4a3f;
+  color: #fff;
+  font-weight: 600;
+}
+
+.tab-button:focus-visible,
+#logout:focus-visible {
+  outline: 2px solid #2f4a3f;
+  outline-offset: 2px;
+}
+
+h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  margin-top: 2rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #e4e2da;
 }
 
 select,
