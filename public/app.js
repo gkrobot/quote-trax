@@ -322,19 +322,25 @@ function bookRow(b, series) {
   return li;
 }
 
-// Stats tab
-function statRow(label, value) {
-  const dt = document.createElement("dt");
-  dt.textContent = label;
-  const dd = document.createElement("dd");
-  dd.textContent = value ?? 0;
-  return [dt, dd];
+// Stats tab: cards for totals, bars for series and books.
+function statCard(label, value) {
+  const card = el("div", { className: "stat-card" });
+  card.append(el("span", { className: "stat-value", textContent: String(value ?? 0) }));
+  card.append(el("span", { className: "stat-label", textContent: label }));
+  return card;
 }
 
-function listItem(text, count) {
-  const li = document.createElement("li");
-  li.textContent = `${text} — ${count}`;
-  return li;
+// Bar widths are set through the CSSOM (allowed under the page's CSP), never as HTML.
+function barRow(label, count, max) {
+  const row = el("li", { className: "bar-row" });
+  const top = el("div", { className: "bar-top" });
+  top.append(el("span", { textContent: label }), el("span", { className: "bar-count", textContent: String(count) }));
+  const track = el("div", { className: "bar-track" });
+  const fill = el("div", { className: "bar-fill" });
+  fill.style.width = `${max > 0 ? Math.max(4, (count / max) * 100) : 0}%`;
+  track.append(fill);
+  row.append(top, track);
+  return row;
 }
 
 async function loadStats() {
@@ -343,16 +349,20 @@ async function loadStats() {
   const { totals, bySeries, byBook } = await res.json();
 
   $("#stats-totals").replaceChildren(
-    ...statRow("Quotes", totals.quotes),
-    ...statRow("Books", totals.books),
-    ...statRow("Books with quotes", totals.booksWithQuotes),
-    ...statRow("Series", totals.series),
-    ...statRow("Authors", totals.authors),
-    ...statRow("Last added", totals.lastAdded ? totals.lastAdded.slice(0, 10) : "—"),
+    statCard("Quotes", totals.quotes),
+    statCard("Books", totals.books),
+    statCard("Books with quotes", totals.booksWithQuotes),
+    statCard("Series", totals.series),
+    statCard("Authors", totals.authors),
+    statCard("Last added", totals.lastAdded ? totals.lastAdded.slice(0, 10) : "—"),
   );
-  $("#stats-series").replaceChildren(...bySeries.map((s) => listItem(s.name, s.quotes)));
+
+  const seriesMax = Math.max(0, ...bySeries.map((s) => s.quotes));
+  $("#stats-series").replaceChildren(...bySeries.map((s) => barRow(s.name, s.quotes, seriesMax)));
+
+  const bookMax = Math.max(0, ...byBook.map((b) => b.quotes));
   $("#stats-books").replaceChildren(
-    ...byBook.map((b) => listItem(b.series ? `${b.title} (${b.series})` : b.title, b.quotes)),
+    ...byBook.map((b) => barRow(b.series ? `${b.title} (${b.series})` : b.title, b.quotes, bookMax)),
   );
 }
 
