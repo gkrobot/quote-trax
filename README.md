@@ -32,3 +32,4 @@ Create `.dev.vars` (gitignored) with `APP_USERNAME` and `SETUP_TOKEN`, then run 
 - The account's password hash, authenticator key, and session key are stored in D1. Anyone with D1 Console access can read them.
 - Sessions are signed cookies that expire after 12 hours. Logout clears the cookie in this browser only.
 - Sign-in is limited to three wrong codes per attempt. The username and password step is not rate limited yet.
+
