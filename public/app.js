@@ -24,7 +24,7 @@ function applyLook(look) {
   $("#look-toggle").textContent = look === "modern" ? "Look: Modern" : "Look: Comfy";
   $("#wordmark").src = look === "modern" ? "/brand/quote-trax-wordmark-modern.svg" : "/brand/quote-trax-wordmark-comfy.svg";
   $("#login-wordmark").src = $("#wordmark").src;
-  $("#footer-badge").src = look === "modern" ? "/brand/quote-trax-badge-modern.svg" : "/brand/quote-trax-badge-comfy.svg";
+  $("#footer-badge").src = look === "modern" ? "/brand/quote-marks-modern.svg" : "/brand/quote-marks-comfy.svg";
 }
 
 $("#look-toggle").addEventListener("click", () => {
