@@ -34,7 +34,33 @@ header {
   letter-spacing: 0.01em;
 }
 
-#logout {
+/* Header wordmark: the SVG logo for the current look. */
+.wordmark {
+  margin: 0;
+}
+
+.wordmark img {
+  display: block;
+  height: 2.6rem;
+  width: auto;
+}
+
+.login-wordmark {
+  display: block;
+  height: 4.5rem;
+  width: auto;
+  margin: 1rem 0 0.5rem;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+#logout,
+#look-toggle {
   background: transparent;
   border: 1px solid #c9c6bc;
   border-radius: 999px;
@@ -44,7 +70,8 @@ header {
   cursor: pointer;
 }
 
-#logout:hover {
+#logout:hover,
+#look-toggle:hover {
   background: #f0efe8;
 }
 
@@ -113,7 +140,8 @@ header nav {
 }
 
 .tab-button:focus-visible,
-#logout:focus-visible {
+#logout:focus-visible,
+#look-toggle:focus-visible {
   outline: 2px solid #2f4a3f;
   outline-offset: 2px;
 }

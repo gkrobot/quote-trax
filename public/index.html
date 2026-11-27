@@ -6,6 +6,8 @@
   <meta name="robots" content="noindex">
   <title>quote-trax</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
 </head>
 <body>
   <main>
@@ -34,6 +36,7 @@
     </section>
 
     <section id="login" hidden>
+      <img id="login-wordmark" class="login-wordmark" src="/brand/quote-trax-wordmark-modern.svg" alt="quote-trax">
       <h1>Sign in</h1>
 
       <form id="step-password" hidden>
@@ -55,8 +58,11 @@
     <section id="library" hidden>
       <header>
         <div class="topbar">
-          <h1>quote-trax</h1>
-          <button id="logout" type="button">Sign out</button>
+          <h1 class="wordmark"><img id="wordmark" src="/brand/quote-trax-wordmark-modern.svg" alt="quote-trax"></h1>
+          <div class="topbar-actions">
+            <button id="look-toggle" type="button">Look</button>
+            <button id="logout" type="button">Sign out</button>
+          </div>
         </div>
         <nav>
           <button type="button" data-tab="library" class="tab-button">Library</button>

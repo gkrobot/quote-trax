@@ -1,0 +1,16 @@
+/* Theme "modern": cool grey background, sans-serif, teal accents, card shadows. */
+body { background: #f4f6f8; color: #1d2730; font-family: -apple-system, system-ui, sans-serif; }
+h1, h2, h3, .topbar h1 { font-family: -apple-system, system-ui, sans-serif; color: #1d2730; letter-spacing: -0.01em; }
+h1 { font-weight: 700; }
+h2 { font-weight: 600; border-bottom: none; margin-top: 2.2rem; }
+header { border-bottom: none; }
+.tab-button, #filter-clear { background: #fff; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); color: #40505c; }
+#logout,
+#look-toggle { background: #e2e8ec; border: none; color: #1d2730; }
+.tab-button[aria-current="page"] { background: #0f766e; color: #fff; box-shadow: 0 4px 10px rgba(15, 118, 110, 0.3); }
+.stat-card { background: #fff; border: none; border-radius: 16px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06); }
+.stat-value, .bar-count { color: #0f766e; font-family: -apple-system, system-ui, sans-serif; font-weight: 700; }
+.bar-track { background: #e2e8ec; }
+.bar-fill { background: linear-gradient(90deg, #2dd4bf, #0f766e); }
+.quote { background: #fff; border: none; border-left: 4px solid #0f766e; border-radius: 12px; padding: 0.9rem 1.2rem; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05); }
+input, select, textarea { background: #fff; border-color: #cfd8de; border-radius: 10px; }
