@@ -34,26 +34,15 @@ header {
   letter-spacing: 0.01em;
 }
 
-/* Title: a serif wordmark with a large quotation mark. */
+/* Header wordmark: the SVG logo for the current look. */
 .wordmark {
-  display: flex;
-  align-items: baseline;
-  gap: 0.05rem;
-  font-size: 1.5rem;
-  font-style: italic;
-  color: #2f4a3f;
+  margin: 0;
 }
 
-.wordmark .mark {
-  font-size: 2.6rem;
-  line-height: 0;
-  color: #b08a5a;
-  margin-right: 0.15rem;
-}
-
-.wordmark .dash {
-  color: #b08a5a;
-  margin: 0 0.05rem;
+.wordmark img {
+  display: block;
+  height: 2.6rem;
+  width: auto;
 }
 
 .topbar-actions {

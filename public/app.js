@@ -22,6 +22,7 @@ function applyLook(look) {
     document.head.appendChild(link);
   }
   $("#look-toggle").textContent = look === "modern" ? "Look: Modern" : "Look: Comfy";
+  $("#wordmark").src = look === "modern" ? "/brand/quote-trax-wordmark-modern.svg" : "/brand/quote-trax-wordmark-comfy.svg";
 }
 
 $("#look-toggle").addEventListener("click", () => {

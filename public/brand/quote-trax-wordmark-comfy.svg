@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="344" height="256" viewBox="70 112 344 256">
+ <title>quote-trax</title><g>
+   <path d="M82 173 C82 143 101 124 128 124 C155 124 172 142 172 168 C172 197 153 218 121 233 L109 211 C126 202 135 192 139 180 C135 183 130 184 124 184 C100 184 82 167 82 173Z" fill="#B08A5A"/>
+   <path d="M173 173 C173 143 192 124 219 124 C246 124 263 142 263 168 C263 197 244 218 212 233 L200 211 C217 202 226 192 230 180 C226 183 221 184 215 184 C191 184 173 167 173 173Z" fill="#B08A5A"/>
+   <text x="256" y="315" text-anchor="middle" font-family="Georgia, Times New Roman, serif" font-size="67" font-weight="700" font-style="italic" letter-spacing="-2.5" fill="#2F4A3F">quote-trax</text>
+   <path d="M154 353 H358" stroke="#B08A5A" stroke-width="7" stroke-linecap="round"/>
+  </g></svg>
