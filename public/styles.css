@@ -366,6 +366,11 @@ ul.plain li {
   line-height: 1.1;
 }
 
+.stat-value-date {
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
 .stat-label {
   font-size: 0.8rem;
   color: #6a675d;
