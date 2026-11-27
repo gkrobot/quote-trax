@@ -34,7 +34,15 @@ header {
   letter-spacing: 0.01em;
 }
 
-#logout {
+.topbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+#logout,
+#look-toggle {
   background: transparent;
   border: 1px solid #c9c6bc;
   border-radius: 999px;
@@ -44,7 +52,8 @@ header {
   cursor: pointer;
 }
 
-#logout:hover {
+#logout:hover,
+#look-toggle:hover {
   background: #f0efe8;
 }
 
@@ -113,7 +122,8 @@ header nav {
 }
 
 .tab-button:focus-visible,
-#logout:focus-visible {
+#logout:focus-visible,
+#look-toggle:focus-visible {
   outline: 2px solid #2f4a3f;
   outline-offset: 2px;
 }

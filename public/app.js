@@ -1,16 +1,40 @@
 // Renders everything with textContent, never innerHTML, so quote text can't inject markup.
 const $ = (sel) => document.querySelector(sel);
 
-// Visual previews: open the page with ?theme=ink, ?theme=paper, or ?theme=modern.
-// Any other value is ignored, and the default look is used.
-const THEMES = ["ink", "paper", "modern"];
-const requestedTheme = new URLSearchParams(location.search).get("theme");
-if (THEMES.includes(requestedTheme)) {
-  const themeLink = document.createElement("link");
-  themeLink.rel = "stylesheet";
-  themeLink.href = `/themes/${requestedTheme}.css`;
-  document.head.appendChild(themeLink);
+// Look: "modern" (default) or "comfy" (the base styles.css). Remembered per browser.
+const LOOK_KEY = "quote-trax-look";
+
+function currentLook() {
+  try {
+    return localStorage.getItem(LOOK_KEY) === "comfy" ? "comfy" : "modern";
+  } catch {
+    return "modern";
+  }
 }
+
+function applyLook(look) {
+  document.getElementById("look-theme")?.remove();
+  if (look === "modern") {
+    const link = document.createElement("link");
+    link.id = "look-theme";
+    link.rel = "stylesheet";
+    link.href = "/themes/modern.css";
+    document.head.appendChild(link);
+  }
+  $("#look-toggle").textContent = look === "modern" ? "Look: Modern" : "Look: Comfy";
+}
+
+$("#look-toggle").addEventListener("click", () => {
+  const next = currentLook() === "modern" ? "comfy" : "modern";
+  try {
+    localStorage.setItem(LOOK_KEY, next);
+  } catch {
+    // Storage is blocked (for example, private browsing). The look still changes for this visit.
+  }
+  applyLook(next);
+});
+
+applyLook(currentLook());
 
 async function api(path, options = {}) {
   return fetch(path, {
