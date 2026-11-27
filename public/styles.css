@@ -45,6 +45,13 @@ header {
   width: auto;
 }
 
+.login-wordmark {
+  display: block;
+  height: 4.5rem;
+  width: auto;
+  margin: 1rem 0 0.5rem;
+}
+
 .topbar-actions {
   display: flex;
   gap: 0.5rem;
