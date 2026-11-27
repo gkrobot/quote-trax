@@ -14,3 +14,6 @@ header { border-bottom: none; }
 .bar-fill { background: linear-gradient(90deg, #2dd4bf, #0f766e); }
 .quote { background: #fff; border: none; border-left: 4px solid #0f766e; border-radius: 12px; padding: 0.9rem 1.2rem; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05); }
 input, select, textarea { background: #fff; border-color: #cfd8de; border-radius: 10px; }
+.wordmark { font-family: -apple-system, system-ui, sans-serif; font-style: normal; font-weight: 800; letter-spacing: -0.03em; color: #1d2730; }
+.wordmark .mark, .wordmark .dash { color: #0f766e; }
+.wordmark .mark { font-family: Georgia, serif; font-weight: 400; }

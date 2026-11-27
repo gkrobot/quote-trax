@@ -34,6 +34,28 @@ header {
   letter-spacing: 0.01em;
 }
 
+/* Title: a serif wordmark with a large quotation mark. */
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 0.05rem;
+  font-size: 1.5rem;
+  font-style: italic;
+  color: #2f4a3f;
+}
+
+.wordmark .mark {
+  font-size: 2.6rem;
+  line-height: 0;
+  color: #b08a5a;
+  margin-right: 0.15rem;
+}
+
+.wordmark .dash {
+  color: #b08a5a;
+  margin: 0 0.05rem;
+}
+
 .topbar-actions {
   display: flex;
   gap: 0.5rem;
