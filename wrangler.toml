@@ -15,3 +15,10 @@ database_name = "quote-trax"
 # Replace with the ID printed by: npx wrangler d1 create quote-trax
 database_id = "e0d3779d-40c8-4599-b46a-9308d71305d4"
 migrations_dir = "migrations"
+
+# Preview deployments (branch builds) use the same real database. Any change
+# made through a preview changes your real quotes.
+[[previews.d1_databases]]
+binding = "DB"
+database_name = "quote-trax"
+database_id = "e0d3779d-40c8-4599-b46a-9308d71305d4"
