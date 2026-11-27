@@ -18,16 +18,6 @@
 - **Import / Export:** paste or upload a JSON export, or copy and download your library. Imports update existing items by ID, so re-importing is safe.
 - **Two looks:** Modern (the default) and Comfy. The Look button beside Sign out switches between them, and your choice is remembered in each browser.
 
-## Look
-
-<p align="center">
-  <img src="public/brand/quote-trax-wordmark-comfy.svg" alt="quote-trax, Comfy look" width="260">
-  &nbsp;&nbsp;
-  <img src="public/brand/quote-trax-badge-modern.svg" alt="quote-trax badge" width="160">
-</p>
-
-The browser tab icon is `public/favicon.svg`, made from the monogram in `public/brand/`. The footer shows the two quotation marks from the wordmark.
-
 ## Setup (no terminal needed)
 
 1. **Create the database.** In the Cloudflare dashboard, go to Storage & Databases → D1 → Create, and name it `quote-trax`. Put its ID in `database_id` in `wrangler.toml`.
