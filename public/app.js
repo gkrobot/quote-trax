@@ -52,6 +52,8 @@ function showSection(id) {
   $("#setup").hidden = id !== "setup";
   $("#login").hidden = id !== "login";
   $("#library").hidden = id !== "library";
+  // The footer appears only in the signed-in app, not on the sign-in or setup pages.
+  $("#site-footer").hidden = id !== "library";
 }
 
 function showStep(id) {
