@@ -360,9 +360,9 @@ function bookRow(b, series) {
 }
 
 // Stats tab: cards for totals, bars for series and books.
-function statCard(label, value) {
+function statCard(label, value, valueClass = "stat-value") {
   const card = el("div", { className: "stat-card" });
-  card.append(el("span", { className: "stat-value", textContent: String(value ?? 0) }));
+  card.append(el("span", { className: valueClass, textContent: String(value ?? 0) }));
   card.append(el("span", { className: "stat-label", textContent: label }));
   return card;
 }
@@ -391,7 +391,13 @@ async function loadStats() {
     statCard("Books with quotes", totals.booksWithQuotes),
     statCard("Series", totals.series),
     statCard("Authors", totals.authors),
-    statCard("Last added", totals.lastAdded ? totals.lastAdded.slice(0, 10) : "—"),
+    statCard(
+      "Last added",
+      totals.lastAdded
+        ? new Date(totals.lastAdded).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+        : "—",
+      "stat-value stat-value-date",
+    ),
   );
 
   const seriesMax = Math.max(0, ...bySeries.map((s) => s.quotes));
