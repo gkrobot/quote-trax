@@ -1,6 +1,17 @@
 // Renders everything with textContent, never innerHTML, so quote text can't inject markup.
 const $ = (sel) => document.querySelector(sel);
 
+// Visual previews: open the page with ?theme=ink, ?theme=paper, or ?theme=modern.
+// Any other value is ignored, and the default look is used.
+const THEMES = ["ink", "paper", "modern"];
+const requestedTheme = new URLSearchParams(location.search).get("theme");
+if (THEMES.includes(requestedTheme)) {
+  const themeLink = document.createElement("link");
+  themeLink.rel = "stylesheet";
+  themeLink.href = `/themes/${requestedTheme}.css`;
+  document.head.appendChild(themeLink);
+}
+
 async function api(path, options = {}) {
   return fetch(path, {
     credentials: "same-origin",

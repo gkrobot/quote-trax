@@ -1,0 +1,19 @@
+/* Theme "ink": dark background with gold accents. */
+body { background: #14161a; color: #e9e6df; }
+h1, h2, h3, .topbar h1 { color: #f1ead8; }
+h2, header { border-bottom-color: #2c3038; }
+.hint, .status, .quote footer, .stat-label, .row-item label, .toolbar label, form label { color: #9a968c; }
+.tab-button, #logout, #filter-clear, button {
+  background: #1f2329;
+  border-color: #3a3f48;
+  color: #e9e6df;
+}
+.tab-button:hover, #logout:hover { background: #2a2f38; }
+.tab-button[aria-current="page"] { background: #c9a86a; border-color: #c9a86a; color: #14161a; }
+.stat-card { background: #1b1e24; border-color: #2c3038; border-top-color: #c9a86a; box-shadow: none; }
+.stat-value, .bar-count { color: #c9a86a; }
+.bar-track { background: #2a2e36; }
+.bar-fill { background: linear-gradient(90deg, #8a6d3b, #c9a86a); }
+.quote { border-left-color: #c9a86a; }
+input, select, textarea { background: #1b1e24; color: #e9e6df; border-color: #3a3f48; }
+.key { background: #1b1e24; }
