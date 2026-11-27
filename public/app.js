@@ -24,6 +24,7 @@ function applyLook(look) {
   $("#look-toggle").textContent = look === "modern" ? "Look: Modern" : "Look: Comfy";
   $("#wordmark").src = look === "modern" ? "/brand/quote-trax-wordmark-modern.svg" : "/brand/quote-trax-wordmark-comfy.svg";
   $("#login-wordmark").src = $("#wordmark").src;
+  $("#footer-badge").src = look === "modern" ? "/brand/quote-marks-modern.svg" : "/brand/quote-marks-comfy.svg";
 }
 
 $("#look-toggle").addEventListener("click", () => {
@@ -51,6 +52,8 @@ function showSection(id) {
   $("#setup").hidden = id !== "setup";
   $("#login").hidden = id !== "login";
   $("#library").hidden = id !== "library";
+  // The footer appears only in the signed-in app, not on the sign-in or setup pages.
+  $("#site-footer").hidden = id !== "library";
 }
 
 function showStep(id) {

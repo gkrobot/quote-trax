@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+ <title>quote-trax</title><g>
+   <circle cx="256" cy="206" r="112" fill="none" stroke="#0F766E" stroke-width="13"/>
+   <path d="M256 145 C225 126 192 126 164 139 V259 C194 246 226 249 256 269 C286 249 318 246 348 259 V139 C320 126 287 126 256 145Z" fill="none" stroke="#1D2730" stroke-width="11" stroke-linejoin="round"/>
+   <path d="M256 147 V267" stroke="#0F766E" stroke-width="8" stroke-linecap="round"/>
+   <path d="M185 170 C185 151 198 139 216 139 C234 139 245 151 245 168 C245 188 232 202 211 212 L203 197 C214 191 220 184 222 176 C219 178 216 179 212 179 C196 179 185 167 185 170Z" fill="#2DD4BF"/>
+   <text x="256" y="397" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="59" font-weight="700" font-style="normal" letter-spacing="-2" fill="#1D2730">quote-trax</text>
+  </g></svg>
