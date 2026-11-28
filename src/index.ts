@@ -32,7 +32,8 @@ type Account = {
 };
 
 const COOKIE = "qt_session";
-const SESSION_TTL_SECONDS = 60 * 60 * 12;
+const SESSION_IDLE_SECONDS = 60 * 60 * 36; // signed out after 36 hours without activity
+const SESSION_MAX_SECONDS = 60 * 60 * 24 * 30; // hard limit: 30 days from sign-in
 
 // Step 1 (username + password) issues a short-lived "pending" cookie.
 // Step 2 (authenticator code) must present it to get a session.
@@ -53,7 +54,8 @@ export default {
     }
 
     try {
-      return withSecurityHeaders(await handleApi(request, env, url));
+      const res = await handleApi(request, env, url);
+      return withSecurityHeaders(await withRefreshedSession(request, env, url, res));
     } catch (err) {
       console.error(err);
       return json({ error: "server error" }, 500);
@@ -259,9 +261,9 @@ async function loginCode(request: Request, env: Env, url: URL): Promise<Response
     return json({ error: "invalid code" }, 401, { "Set-Cookie": pendingCookie(token, remaining) });
   }
 
-  const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
-  const token = `${exp}.${await hmacHex(account.session_secret, `session:${exp}`)}`;
-  const res = json({ ok: true }, 200, { "Set-Cookie": sessionCookie(token, SESSION_TTL_SECONDS) });
+  const res = json({ ok: true }, 200, {
+    "Set-Cookie": await issueSessionCookie(account, Math.floor(Date.now() / 1000)),
+  });
   res.headers.append("Set-Cookie", pendingCookie("", 0));
   return res;
 }
@@ -277,17 +279,46 @@ async function getAccount(env: Env): Promise<Account | null> {
   ).first<Account>();
 }
 
+// Session cookie: "<exp>.<iat>.<hmac>". iat = sign-in time (Unix seconds).
+// Returns iat if the signature and both limits hold, else null.
+async function readSession(request: Request, account: Account): Promise<number | null> {
+  const raw = readCookie(request, COOKIE);
+  if (!raw) return null;
+  const [expStr, iatStr, sig] = raw.split(".");
+  const exp = Number(expStr);
+  const iat = Number(iatStr);
+  const now = Math.floor(Date.now() / 1000);
+  if (!sig || !Number.isInteger(exp) || !Number.isInteger(iat)) return null;
+  if (exp <= now || iat + SESSION_MAX_SECONDS <= now) return null;
+  const expected = await hmacHex(account.session_secret, `session:${expStr}:${iatStr}`);
+  return timingSafeEqual(enc.encode(sig), enc.encode(expected)) ? iat : null;
+}
+
+// Expiry slides forward on each request (idle timeout), but never past sign-in + 30 days.
+async function issueSessionCookie(account: Account, iat: number): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const exp = Math.min(now + SESSION_IDLE_SECONDS, iat + SESSION_MAX_SECONDS);
+  const token = `${exp}.${iat}.${await hmacHex(account.session_secret, `session:${exp}:${iat}`)}`;
+  return sessionCookie(token, exp - now);
+}
+
+// Re-issues the session cookie on every signed-in API call, which resets the idle timeout.
+async function withRefreshedSession(request: Request, env: Env, url: URL, res: Response): Promise<Response> {
+  const { pathname } = url;
+  if (!pathname.startsWith("/api/") || pathname.startsWith("/api/login") || pathname.startsWith("/api/setup") || pathname === "/api/logout") {
+    return res;
+  }
+  const account = await getAccount(env);
+  if (!account) return res;
+  const iat = await readSession(request, account);
+  if (iat !== null) res.headers.append("Set-Cookie", await issueSessionCookie(account, iat));
+  return res;
+}
+
 async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
   const account = await getAccount(env);
   if (!account) return false;
-
-  const raw = readCookie(request, COOKIE);
-  if (!raw) return false;
-  const [expStr, sig] = raw.split(".");
-  const exp = Number(expStr);
-  if (!sig || !Number.isFinite(exp) || exp * 1000 < Date.now()) return false;
-  const expected = await hmacHex(account.session_secret, `session:${expStr}`);
-  return timingSafeEqual(enc.encode(sig), enc.encode(expected));
+  return (await readSession(request, account)) !== null;
 }
 
 // Pending token: "<exp>.<attempts>.<hmac>". Signed, so attempts can't be lowered by hand.
